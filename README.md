@@ -17,7 +17,7 @@ platformio run -e tasmota32-EWELINK
 ```
 Firmware will be located at `.pio/build/tasmota32-EWELINK/firmware.bin`
 
-You can use the already built firmware in this git repository at `bin/tasmota32-EWELINK.bin`
+You can use the already built firmware in this git repository `bin/tasmota32-EWELINK.bin` [located here](bin/tasmota32-EWELINK.bin).
 
 ## Program
 Use any tasmota flasher with the previous bin file. Take a look to the [official documentation](https://tasmota.github.io/docs/Getting-Started/).
@@ -30,7 +30,7 @@ Secondly, add this template in the console (ETH support):
 backlog Template {"NAME":"ZB-GW03-V1.3","GPIO":[0,0,3552,0,3584,0,0,0,5793,5792,320,544,5536,0,5600,0,0,0,0,5568,0,0,0,0,0,0,0,0,608,640,32,0,0,0,0,0],"FLAG":0,"BASE":1} ; module 0
 ```
 
-Then, perform a firmware upgrade with the `bin/ncp-uart-sw-6.7.9_115200.ota` (original [source](https://github.com/arendst/Tasmota/tree/development/tools/fw_SonoffZigbeeBridge_ezsp)).
+Then, perform a firmware upgrade with the `bin/ncp-uart-sw-6.7.9_115200.ota` [located here](bin/ncp-uart-nsw_6.7.9_115200.ota) (original [source](https://github.com/arendst/Tasmota/tree/development/tools/fw_SonoffZigbeeBridge_ezsp)).
 
 Now, plug the ethernet and check in `Information` that you have a valid ethernet IP address.
 
