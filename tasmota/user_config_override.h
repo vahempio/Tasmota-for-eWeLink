@@ -32,7 +32,9 @@
   #define USE_TCP_BRIDGE
   #undef  USE_ZIGBEE_CHANNEL
   #define USE_ZIGBEE_CHANNEL 11 // (11-26)
-  
+#endif
+
+#ifdef FIRWARE_WITH_ETH
   #define USE_ETHERNET
   #undef  ETH_TYPE
   #define ETH_TYPE 0 // ETH_PHY_LAN8720
