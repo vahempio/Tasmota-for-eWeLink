@@ -155,7 +155,6 @@ inline float atanf(float x) { return atan_66(x); }
 inline float asinf(float x) { return asinf1(x); }
 inline float acosf(float x) { return acosf1(x); }
 inline float sqrtf(float x) { return sqrt1(x); }
-inline float powf(float x, float y) { return FastPrecisePow(x, y); }
 
 // Math constants we'll use
 double const f_pi           = 3.1415926535897932384626433;  // f_pi
@@ -407,8 +406,19 @@ uint16_t changeUIntScale(uint16_t inum, uint16_t ifrom_min, uint16_t ifrom_max,
     to_max = ito_min;
   }
 
-  uint32_t numerator = (num - from_min) * (to_max - to_min + 1);
-  uint32_t result = numerator / (from_max - from_min) + to_min;
+  // short-cut if limits to avoid rounding errors
+  if (num == from_min) return to_min;
+  if (num == from_max) return to_max;
+
+  uint32_t result;
+  if ((num - from_min) < 0x8000L) {   // no overflow possible
+    uint32_t numerator = ((num - from_min) * 2 + 1) * (to_max - to_min + 1);
+    result = numerator / ((from_max - from_min + 1) * 2) + to_min;
+  } else {    // no pre-rounding since it might create an overflow
+    uint32_t numerator = (num - from_min) * (to_max - to_min + 1);
+    result = numerator / (from_max - from_min) + to_min;
+  }
+
   return (uint32_t) (result > to_max ? to_max : (result < to_min ? to_min : result));
 }
 
