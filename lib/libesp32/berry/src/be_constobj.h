@@ -33,6 +33,18 @@ extern "C" {
     .next = (uint32_t)(_next) & 0xFFFFFF                        \
 }
 
+#define be_const_key_literal(_str, _next) {                     \
+    .v.c = be_str_literal(_str),                                \
+    .type = BE_STRING,                                          \
+    .next = (uint32_t)(_next) & 0xFFFFFF                        \
+}
+
+#define be_const_key_int(_i, _next) {                           \
+    .v.i = _i,                                                  \
+    .type = BE_INT,                                             \
+    .next = (uint32_t)(_next) & 0xFFFFFF                        \
+}
+
 #define be_const_func(_func) {                                  \
     .v.nf = (_func),                                            \
     .type = BE_NTVFUNC                                          \
@@ -40,7 +52,7 @@ extern "C" {
 
 #define be_const_static_func(_func) {                           \
     .v.nf = (_func),                                            \
-    .type = BE_NTVFUNC | BE_FUNC_STATIC                         \
+    .type = BE_NTVFUNC | BE_STATIC                              \
 }
 
 #define be_const_nil() {                                        \
@@ -79,7 +91,7 @@ extern "C" {
 }
 
 #define be_const_comptr(_val) {                                 \
-    .v.c = (const void*)(_val),                                       \
+    .v.c = (const void*)(_val),                                 \
     .type = BE_COMPTR                                           \
 }
 
@@ -95,7 +107,7 @@ extern "C" {
 
 #define be_const_static_closure(_closure) {                     \
     .v.c = &(_closure),                                         \
-    .type = BE_CLOSURE | BE_FUNC_STATIC                         \
+    .type = BE_CLOSURE | BE_STATIC                              \
 }
 
 #define be_const_module(_module) {                              \
@@ -224,6 +236,13 @@ const bntvmodule be_native_module(_module) = {                  \
     BE_STRING                                                   \
   }
 
+#define be_nested_str_literal(_name_)                           \
+  {                                                             \
+    { .s=(be_nested_const_str(_name_, _hash, sizeof(_name_)-1 ))\
+    },                                                          \
+    BE_STRING                                                   \
+  }
+
 #define be_str_literal(_str)                                    \
   be_nested_const_str(_str, 0, sizeof(_str)-1 )
 
@@ -249,6 +268,12 @@ const bntvmodule be_native_module(_module) = {                  \
         uint32_t((_next)&0xFFFFFF)                              \
 }
 
+#define be_const_key_int(_i, _next) {                           \
+    bvaldata(i),                                                \
+        BE_INT,                                                 \
+        uint32_t((_next)&0xFFFFFF)                              \
+}
+
 #define be_const_func(_func) {                                  \
     bvaldata(_func),                                            \
     BE_NTVFUNC                                                  \
@@ -256,7 +281,7 @@ const bntvmodule be_native_module(_module) = {                  \
 
 #define be_const_static_func(_func) {                           \
     bvaldata(_func),                                            \
-    BE_NTVFUNC | BE_FUNC_STATIC                                 \
+    BE_NTVFUNC | BE_STATIC                                      \
 }
 
 #define be_const_nil() {                                        \
@@ -311,7 +336,7 @@ const bntvmodule be_native_module(_module) = {                  \
 
 #define be_const_static_closure(_closure) {                     \
     bvaldata(&(_closure)),                                      \
-    BE_CLOSURE | BE_FUNC_STATIC                                 \
+    BE_CLOSURE | BE_STATIC                                      \
 }
 
 #define be_const_module(_module) {                              \

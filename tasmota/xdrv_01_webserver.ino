@@ -62,17 +62,9 @@ const uint16_t HTTP_OTA_RESTART_RECONNECT_TIME = 10000;  // milliseconds - Allow
 #include <DNSServer.h>
 
 #ifdef USE_UNISHOX_COMPRESSION
-  #ifdef USE_JAVASCRIPT_ES6
-    #include "./html_compressed/HTTP_HEADER1_ES6.h"
-  #else
-    #include "./html_compressed/HTTP_HEADER1_NOES6.h"
-  #endif
+  #include "./html_compressed/HTTP_HEADER1_ES6.h"
 #else
-  #ifdef USE_JAVASCRIPT_ES6
-    #include "./html_uncompressed/HTTP_HEADER1_ES6.h"
-  #else
-    #include "./html_uncompressed/HTTP_HEADER1_NOES6.h"
-  #endif
+  #include "./html_uncompressed/HTTP_HEADER1_ES6.h"
 #endif
 
 const char HTTP_SCRIPT_COUNTER[] PROGMEM =
@@ -113,7 +105,7 @@ const char HTTP_SCRIPT_WIFI[] PROGMEM =
   "}";
 
 const char HTTP_SCRIPT_HIDE[] PROGMEM =
-  "function hidBtns() {"
+  "function hidBtns(){"
     "eb('butmo').style.display='none';"
     "eb('butmod').style.display='none';"
     "eb('but0').style.display='block';"
@@ -881,12 +873,28 @@ void WSContentSendStyle_P(const char* formatP, ...) {
 #endif
     bool lip = (static_cast<uint32_t>(WiFi.localIP()) != 0);
     bool sip = (static_cast<uint32_t>(WiFi.softAPIP()) != 0);
-    WSContentSend_P(PSTR("<h4>%s%s (%s%s%s)</h4>"),    // tasmota.local (192.168.2.12, 192.168.4.1)
-      NetworkHostname(),
-      (Mdns.begun) ? PSTR(".local") : "",
-      (lip) ? WiFi.localIP().toString().c_str() : "",
-      (lip && sip) ? ", " : "",
-      (sip) ? WiFi.softAPIP().toString().c_str() : "");
+    bool eip = false;
+    if (lip || sip) {
+      WSContentSend_P(PSTR("<h4>%s%s (%s%s%s)"),    // tasmota.local (192.168.2.12, 192.168.4.1)
+        TasmotaGlobal.hostname,
+        (Mdns.begun) ? PSTR(".local") : "",
+        (lip) ? WiFi.localIP().toString().c_str() : "",
+        (lip && sip) ? ", " : "",
+        (sip) ? WiFi.softAPIP().toString().c_str() : "");
+    }
+#if defined(ESP32) && CONFIG_IDF_TARGET_ESP32 && defined(USE_ETHERNET)
+    eip = (static_cast<uint32_t>(EthernetLocalIP()) != 0);
+    if (eip) {
+      WSContentSend_P(PSTR("%s%s%s (%s)"),          // tasmota-eth.local (192.168.2.13)
+        (lip || sip) ? PSTR("</br>") : PSTR("<h4>"),
+        EthernetHostname(),
+        (Mdns.begun) ? PSTR(".local") : "",
+        (eip) ? EthernetLocalIP().toString().c_str() : "");
+    }
+#endif
+    if (lip || sip || eip) {
+      WSContentSend_P(PSTR("</h4>"));
+    }
   }
   WSContentSend_P(PSTR("</div>"));
 }
@@ -1143,7 +1151,7 @@ void HandleRoot(void)
             PSTR("b"),             // b - Unique HTML id
             PSTR("#800"), PSTR("#f00 5%,#ff0 20%,#0f0 35%,#0ff 50%,#00f 65%,#f0f 80%,#f00 95%,#800"),  // Hue colors
             2,               // sl2 - Unique range HTML id - Used as source for Saturation end color
-            1, 359,          // Range valid Hue
+            0, 359,          // Range valid Hue
             hue,
             'h', 0);         // h0 - Value id
 
@@ -3156,14 +3164,23 @@ int WebQuery(char *buffer)
           // Return received data to the user - Adds 900+ bytes to the code
           const char* read = http.getString().c_str();  // File found at server - may need lot of ram or trigger out of memory!
           ResponseClear();
+          Response_P(PSTR("{\"" D_CMND_WEBQUERY "\":"));
           char text[2] = { 0 };
-          text[0] = '.';
+          text[0] = *read++;
+          bool assume_json = (text[0] == '{') || (text[0] == '[');
+          if (!assume_json) { ResponseAppend_P(PSTR("\"")); }
           while (text[0] != '\0') {
-            text[0] = *read++;
             if (text[0] > 31) {               // Remove control characters like linefeed
-              if (ResponseAppend_P(text) == ResponseSize()) { break; };
+              if (assume_json) {
+                if (ResponseAppend_P(text) == ResponseSize()) { break; };
+              } else {
+                if (ResponseAppend_P(EscapeJSONString(text).c_str()) == ResponseSize()) { break; };
+              }
             }
+            text[0] = *read++;
           }
+          if (!assume_json) { ResponseAppend_P(PSTR("\"")); }
+          ResponseJsonEnd();
 #ifdef USE_SCRIPT
           extern uint8_t tasm_cmd_activ;
           // recursive call must be possible in this case
@@ -3284,6 +3301,8 @@ const char kWebCmndStatus[] PROGMEM = D_JSON_DONE "|" D_JSON_WRONG_PARAMETERS "|
 ;
 
 const char kWebCommands[] PROGMEM = "|"  // No prefix
+  D_CMND_WEBLOG "|"
+#ifndef FIRMWARE_MINIMAL
   D_CMND_WEBTIME "|"
 #ifdef USE_EMULATION
   D_CMND_EMULATION "|"
@@ -3291,7 +3310,7 @@ const char kWebCommands[] PROGMEM = "|"  // No prefix
 #if defined(USE_SENDMAIL) || defined(USE_ESP32MAIL)
   D_CMND_SENDMAIL "|"
 #endif
-  D_CMND_WEBSERVER "|" D_CMND_WEBPASSWORD "|" D_CMND_WEBLOG "|" D_CMND_WEBREFRESH "|" D_CMND_WEBSEND "|" D_CMND_WEBQUERY "|"
+  D_CMND_WEBSERVER "|" D_CMND_WEBPASSWORD "|" D_CMND_WEBREFRESH "|" D_CMND_WEBSEND "|" D_CMND_WEBQUERY "|"
   D_CMND_WEBCOLOR "|" D_CMND_WEBSENSOR "|" D_CMND_WEBBUTTON
 #ifdef USE_WEBGETCONFIG
   "|" D_CMND_WEBGETCONFIG
@@ -3299,9 +3318,12 @@ const char kWebCommands[] PROGMEM = "|"  // No prefix
 #ifdef USE_CORS
   "|" D_CMND_CORS
 #endif
+#endif  // FIRMWARE_MINIMAL
 ;
 
 void (* const WebCommand[])(void) PROGMEM = {
+  &CmndWeblog,
+#ifndef FIRMWARE_MINIMAL
   &CmndWebTime,
 #ifdef USE_EMULATION
   &CmndEmulation,
@@ -3309,7 +3331,7 @@ void (* const WebCommand[])(void) PROGMEM = {
 #if defined(USE_SENDMAIL) || defined(USE_ESP32MAIL)
   &CmndSendmail,
 #endif
-  &CmndWebServer, &CmndWebPassword, &CmndWeblog, &CmndWebRefresh, &CmndWebSend, &CmndWebQuery,
+  &CmndWebServer, &CmndWebPassword, &CmndWebRefresh, &CmndWebSend, &CmndWebQuery,
   &CmndWebColor, &CmndWebSensor, &CmndWebButton
 #ifdef USE_WEBGETCONFIG
   , &CmndWebGetConfig
@@ -3317,6 +3339,7 @@ void (* const WebCommand[])(void) PROGMEM = {
 #ifdef USE_CORS
   , &CmndCors
 #endif
+#endif  // FIRMWARE_MINIMAL
   };
 
 /*********************************************************************************************\
@@ -3535,7 +3558,7 @@ bool Xdrv01(uint8_t function)
       if (Web.wifi_test_counter) {
         Web.wifi_test_counter--;
         AddLog(LOG_LEVEL_DEBUG, PSTR(D_LOG_WIFI D_TRYING_TO_CONNECT " %s"), SettingsText(SET_STASSID1));
-        if ( WifiCheck_hasIP(WiFi.localIP()) ) {  // Got IP - Connection Established
+        if (WifiHasIP()) {            // Got IP - Connection Established
           Web.wifi_test_AP_TIMEOUT = false;
           Web.wifi_test_counter = 0;
           Web.wifiTest = WIFI_TEST_FINISHED;
