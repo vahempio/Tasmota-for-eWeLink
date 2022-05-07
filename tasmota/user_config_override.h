@@ -20,6 +20,7 @@
 #ifndef _USER_CONFIG_OVERRIDE_H_
 #define _USER_CONFIG_OVERRIDE_H_
 
+// eWeLink Zigbee Ethernet Gateway (ZB-GW03) configuration
 #ifdef FIRMWARE_EWELINK
   #undef  SERIAL_LOG_LEVEL
   #define SERIAL_LOG_LEVEL LOG_LEVEL_NONE
@@ -32,14 +33,23 @@
   #define USE_TCP_BRIDGE
   #undef  USE_ZIGBEE_CHANNEL
   #define USE_ZIGBEE_CHANNEL 11 // (11-26)
-#endif
 
-#ifdef FIRWARE_WITH_ETH
   #define USE_ETHERNET
   #undef  ETH_TYPE
   #define ETH_TYPE 0 // ETH_PHY_LAN8720
   #undef  ETH_CLKMODE
   #define ETH_CLKMODE 3 // ETH_CLOCK_GPIO17_OUT
+  #undef  ETH_ADDRESS
+  #define ETH_ADDRESS 1 // PHY1
+#endif
+
+// WT32-ETH0 ethernet configuration
+#ifdef ETH_FOR_WT32
+  #define USE_ETHERNET
+  #undef  ETH_TYPE
+  #define ETH_TYPE 0 // ETH_PHY_LAN8720
+  #undef  ETH_CLKMODE
+  #define ETH_CLKMODE 0 // ETH_CLOCK_GPIO0_IN
   #undef  ETH_ADDRESS
   #define ETH_ADDRESS 1 // PHY1
 #endif
