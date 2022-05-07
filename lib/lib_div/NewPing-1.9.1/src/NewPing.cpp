@@ -96,6 +96,7 @@ unsigned long NewPing::ping_median(uint8_t it, unsigned int max_cm_distance) {
 	uint8_t j, i = 0;
 	unsigned long t;
 	uS[0] = NO_ECHO;
+	uint8_t pos;
 
 	while (i < it) {
 		t = micros();                  // Start ping timestamp.
@@ -114,7 +115,12 @@ unsigned long NewPing::ping_median(uint8_t it, unsigned int max_cm_distance) {
 			delay((PING_MEDIAN_DELAY + t - micros()) / 1000); // Millisecond delay between pings.
 
 	}
-	return (uS[it >> 1]); // Return the ping distance median.
+	if (it >=3) {
+		pos = it >> 1;
+		return (uS[pos-1]+uS[pos]+uS[pos+1])/3; // Return mean on the median value.
+	} else {
+		return (uS[it >> 1]); // Return the ping distance median.
+	}
 }
 
 
