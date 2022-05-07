@@ -28,7 +28,7 @@ platformio run -e tasmota32-EWELINK
 ```
 Firmware will be located at `.pio/build/tasmota32-EWELINK/firmware.bin`
 
-You can use the already built firmware in this git repository `bin/tasmota32-EWELINK.bin` [located here](bin/tasmota32-EWELINK.bin).
+You can use the already built firmware in this git repository `bin/tasmota32-EWELINK_11.1.0.bin` [located here](bin/tasmota32-EWELINK_11.1.0.bin).
 
 ## Program
 Use any tasmota flasher with the previous bin file. Take a look to the [official documentation](https://tasmota.github.io/docs/Getting-Started/).
