@@ -85,3 +85,4 @@ With Home Assistant, add the `Zigbee Home Automation` integration with the ethrn
 * https://www.digiblur.com/2020/07/how-to-use-sonoff-zigbee-bridge-with.html
 * https://www.digiblur.com/2021/03/zigbee2mqtt-with-sonoff-zigbee-bridge.html
 * https://www.digiblur.com/2022/02/convert-sonoff-zigbee-bridge-to-router-repeater.html
+
