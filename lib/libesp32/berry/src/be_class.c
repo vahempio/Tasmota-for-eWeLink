@@ -12,6 +12,7 @@
 #include "be_gc.h"
 #include "be_vm.h"
 #include "be_func.h"
+#include "be_module.h"
 #include <string.h>
 
 #define check_members(vm, c)            \
@@ -240,12 +241,6 @@ bbool be_class_newobj(bvm *vm, bclass *c, int pos, int argc, int mode)
     return bfalse;
 }
 
-/* Default empty constructor */
-static int default_init_native_method(bvm *vm)
-{
-    be_return_nil(vm);
-}
-
 /* Find instance member by name and copy value to `dst` */
 /* Do not look into virtual members */
 int be_instance_member_simple(bvm *vm, binstance *instance, bstring *name, bvalue *dst)
@@ -280,7 +275,7 @@ int be_instance_member(bvm *vm, binstance *instance, bstring *name, bvalue *dst)
     } else {  /* if no method found, try virtual */
         /* if 'init' does not exist, create a virtual empty constructor */
         if (strcmp(str(name), "init") == 0) {
-            var_setntvfunc(dst, default_init_native_method);
+            var_setntvfunc(dst, be_default_init_native_function);
             return var_primetype(dst);
         } else {
             /* get method 'member' */
@@ -297,10 +292,15 @@ int be_instance_member(bvm *vm, binstance *instance, bstring *name, bvalue *dst)
                     *dst = obj->members[dst->v.i];
                 }
                 type = var_type(dst);
-                if (type != BE_NIL) {
+                if (type == BE_MODULE) {
+                    /* check if the module is named `undefined` */
+                    bmodule *mod = var_toobj(dst);
+                    if (strcmp(be_module_name(mod), "undefined") == 0) {
+                        return BE_NONE;     /* if the return value is module `undefined`, consider it is an error */
+                    }
+                }
                     var_clearstatic(dst);
                     return type;
-                }
             }
         }
     }
@@ -339,6 +339,20 @@ bbool be_instance_setmember(bvm *vm, binstance *o, bstring *name, bvalue *src)
             vm->top += 4;   /* prevent collection results */
             be_dofunc(vm, top, 3); /* call method 'member' */
             vm->top -= 4;
+            /* if return value is `false` or `undefined` signal an unknown attribute */
+            int type = var_type(vm->top);
+            if (type == BE_BOOL) {
+                bbool ret = var_tobool(vm->top);
+                if (!ret) {
+                    return bfalse;
+                }
+            } else if (type == BE_MODULE) {
+                /* check if the module is named `undefined` */
+                bmodule *mod = var_toobj(vm->top);
+                if (strcmp(be_module_name(mod), "undefined") == 0) {
+                    return bfalse;     /* if the return value is module `undefined`, consider it is an error */
+                }
+            }
             return btrue;
         }
     }

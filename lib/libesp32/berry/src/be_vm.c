@@ -114,7 +114,13 @@
     if (var_isint(a) && var_isint(b)) { \
         res = ibinop(op, a, b); \
     } else if (var_isnumber(a) && var_isnumber(b)) { \
-        res = var2real(a) op var2real(b); \
+        /* res = var2real(a) op var2real(b); */ \
+        union bvaldata x, y;        /* TASMOTA workaround for ESP32 rev0 bug */ \
+        x.i = a->v.i;\
+        if (var_isint(a)) { x.r = (breal) x.i; }\
+        y.i = b->v.i;\
+        if (var_isint(b)) { y.r = (breal) y.i; }\
+        res = x.r op y.r; \
     } else if (var_isstr(a) && var_isstr(b)) { \
         bstring *s1 = var_tostr(a), *s2 = var_tostr(b); \
         res = be_strcmp(s1, s2) op 0; \
@@ -281,6 +287,12 @@ bbool be_value2bool(bvm *vm, bvalue *v)
         return val2bool(v->v.i);
     case BE_REAL:
         return val2bool(v->v.r);
+    case BE_STRING:
+        return str_len(var_tostr(v)) != 0;
+    case BE_COMPTR:
+        return var_toobj(v) != NULL;
+    case BE_COMOBJ:
+        return ((bcommomobj*)var_toobj(v))->data != NULL;
     case BE_INSTANCE:
         return obj2bool(vm, v);
     default:
@@ -1207,11 +1219,12 @@ static void prep_closure(bvm *vm, int pos, int argc, int mode)
     for (v = vm->reg + argc; v <= end; ++v) {
         var_setnil(v);
     }
+    int v_offset = v - vm->stack;   /* offset from stack base, stack may be reallocated */
     if (proto->varg & BE_VA_VARARG) {  /* there are vararg at the last argument, build the list */
         /* code below uses mostly low-level calls for performance */
-        be_stack_require(vm, argc + 2);   /* make sure we don't overflow the stack */
-        bvalue *top_save = vm->top;  /* save original stack, we need fresh slots to create the 'list' instance */
-        vm->top = v;  /* move top of stack right after last argument */
+        be_stack_require(vm, argc + 4);   /* make sure we don't overflow the stack */
+        int top_save_offset = vm->top - vm->stack;  /* save original stack, we need fresh slots to create the 'list' instance */
+        vm->top = vm->stack + v_offset;  /* move top of stack right after last argument */
         be_newobject(vm, "list");  /* this creates 2 objects on stack: list instance, BE_LIST object */
         blist *list = var_toobj(vm->top-1);  /* get low-level BE_LIST structure */
         v = vm->reg + proto->argc - 1;  /* last argument */
@@ -1219,7 +1232,7 @@ static void prep_closure(bvm *vm, int pos, int argc, int mode)
             be_list_push(vm, list, v); /* push all varargs into list */       
         }
         *(vm->reg + proto->argc - 1) = *(vm->top-2);  /* change the vararg argument to now contain the list instance */
-        vm->top = top_save;  /* restore top of stack pointer */
+        vm->top = vm->stack + top_save_offset;  /* restore top of stack pointer */
     }
 }
 
@@ -1288,6 +1301,18 @@ void be_dofunc(bvm *vm, bvalue *v, int argc)
     case BE_CTYPE_FUNC: do_cfunc(vm, pos, argc); break;
     default: call_error(vm, v);
     }
+}
+
+/* Default empty constructor */
+int be_default_init_native_function(bvm *vm)
+{
+    int argc = be_top(vm);
+    if (argc >= 1) {
+        be_pushvalue(vm, 1);
+    } else {
+        be_pushnil(vm);
+    }
+    be_return(vm);
 }
 
 BERRY_API void be_set_obs_hook(bvm *vm, bobshook hook)

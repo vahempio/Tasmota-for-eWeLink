@@ -499,7 +499,7 @@ BERRY_API bbool be_pushiter(bvm *vm, int index);
 BERRY_API void be_newlist(bvm *vm);
 BERRY_API void be_newmap(bvm *vm);
 BERRY_API void be_newmodule(bvm *vm);
-BERRY_API void be_newcomobj(bvm *vm, void *data, bntvfunc destory);
+BERRY_API void be_newcomobj(bvm *vm, void *data, bntvfunc destroy);
 BERRY_API void be_newobject(bvm *vm, const char *name);
 BERRY_API bbool be_copy(bvm *vm, int index);
 BERRY_API bbool be_setname(bvm *vm, int index, const char *name);
@@ -579,11 +579,6 @@ BERRY_API void be_module_path_set(bvm *vm, const char *path);
 /* bytes operations */
 BERRY_API void* be_pushbytes(bvm *vm, const void *buf, size_t len);
 BERRY_API const void* be_tobytes(bvm *vm, int index, size_t *len);
-
-/* registry operation */
-BERRY_API int be_register(bvm *vm, int index);
-BERRY_API void be_unregister(bvm *vm, int id);
-BERRY_API void be_getregister(bvm *vm, int id);
 
 /* debug APIs */
 BERRY_API void be_sethook(bvm *vm, const char *mask);
